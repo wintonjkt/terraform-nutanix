@@ -1,10 +1,10 @@
-provider "nutanix" {
-  username = "${var.nutanix_user}"
-  password = "${var.nutanix_password}"
-  endpoint = "${var.nutanix_endpoint}"
-  port     = "${var.nutanix_port}"
-  insecure = true
-}
+#provider "nutanix" {
+#  username = "${var.nutanix_user}"
+#  password = "${var.nutanix_password}"
+#  endpoint = "${var.nutanix_endpoint}"
+#  port     = "${var.nutanix_port}"
+#  insecure = true
+#}
 
 resource "tls_private_key" "ssh" {
   algorithm = "RSA"
