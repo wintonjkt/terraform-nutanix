@@ -1,19 +1,19 @@
-variable "nutanix_user" {
-  description = "Nutanix user"
-  default = "adam"
-}
-variable "nutanix_password" {
-  description = "Nutanix password"
-  default = "pocnutanix"
-}
-variable "nutanix_endpoint" {
-  description = "Nutanix endpoint"
-  default = "10.251.0.91"
-}
-variable "nutanix_port" {
-  description = "Nutanix port"
-  default = 9440
-}
+#variable "nutanix_user" {
+#  description = "Nutanix user"
+#  default = "adam"
+#}
+#variable "nutanix_password" {
+#  description = "Nutanix password"
+#  default = "pocnutanix"
+#}
+#variable "nutanix_endpoint" {
+#  description = "Nutanix endpoint"
+#  default = "10.251.0.91"
+#}
+#variable "nutanix_port" {
+#  description = "Nutanix port"
+#  default = 9440
+#}
 variable "nutanix_cluster_uuid" {
   description = "Nutanix Cluster UUID"
   default = "00057f19-99fe-e93d-28e2-0cc47ac22ab0"
