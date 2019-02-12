@@ -1,100 +1,111 @@
-#provider "nutanix" {
-#  username = "${var.nutanix_user}"
-#  password = "${var.nutanix_password}"
-#  endpoint = "${var.nutanix_endpoint}"
-#  port     = "${var.nutanix_port}"
-#  insecure = true
+#variable "prism_username" {
+#  description = "Prism Endpoint admin user name"
+#  default = "adam"
 #}
 
-resource "tls_private_key" "ssh" {
-  algorithm = "RSA"
+#variable "prism_password" {
+#  description = "Prism Endpoint admin password"
+#  default = "pocnutanix"
+#}
 
-  provisioner "local-exec" {
-    command = "cat > ${var.vm_private_key_file} <<EOL\n${tls_private_key.ssh.private_key_pem}\nEOL"
-  }
+#variable "prism_endpoint" {
+#  description = "Prism Endpoint address"
+#  default = "10.251.0.91"
+#}
 
-  provisioner "local-exec" {
-    command = "chmod 600 ${var.vm_private_key_file}"
-  }
+variable "vm_num" {
+  description = "Number of VMs"
+  default = "2"
 }
 
-//user_data
-data "template_file" "nut_user_data" {
-  count = "${var.nut["nodes"]}"
-  template = "${file("${path.module}/scripts/user_data.tpl")}"
-
-  vars {
-    password = "${var.ssh_password}"
-    timezone = "${var.timezone}"
-    vmname = "${format("%s-%s-%01d", lower(var.instance_prefix), lower(var.nut["name"]),count.index + 1) }"
-  }
+variable "vm_num_vcpus_per_socket" {
+  description = "Number of cores per socket"
+  default = "4"
 }
 
-//nut
-resource "nutanix_virtual_machine" "nut" {
-  # lifecycle {
-  #   ignore_changes = ["disk_list.0", "disk_list.1"]
-  # }
+variable "vm_num_socket" {
+  description = "Number of sockets"
+  default = "2"
+}
 
-  count = "${var.nut["nodes"]}"
-  name = "${format("%s-%s-%01d", lower(var.instance_prefix), lower(var.nut["name"]),count.index + 1) }"
-  num_vcpus_per_socket = "${var.nut["cpu_cores"]}"
-  num_sockets          = "${var.nut["cpu_sockets"]}"
-  memory_size_mib      = "${var.nut["memory"]}"
-  hardware_clock_timezone = "${var.timezone}"
+variable "vm_memory" {
+  description = "Memory Size in MiB"
+  default = "32768"
+}
 
+variable "vm_network_uuid" {
+  description = "VM Netowrk UUID"
+  default = "298e4396-b486-4e2d-ad4e-0d59620c2e67"
+}
+
+variable "vm_cdrom_uuid" {
+  description = "VM cdrom UUID"
+  default = "2cf6dbc0-aff6-46bf-803b-7462f58315a5"
+}
+
+variable "vm_image_uuid" {
+  description = "VM image UUID - Ubuntu"
+  default = "64618d12-5a93-407a-8949-0c5352af7b63"
+}
+
+variable "cluster1" {
+  description = "Cluster UUID"
+  default = "00057f19-99fe-e93d-28e2-0cc47ac22ab0"
+}
+
+#provider "nutanix" {
+#  username = "${var.prism_username}"
+#  password = "${var.prism_password}"
+#  endpoint = "${var.prism_endpoint}"
+#  insecure = true
+#  port     = 9440
+#}
+
+resource "random_id" "rand" {
+  byte_length = 2
+}
+
+resource "nutanix_virtual_machine" "simple-vm" {
+  count = "${var.vm_num}"
+  name  = "${format("simple_vm-${random_id.rand.hex}-%02d", count.index+1)}"
+  num_vcpus_per_socket = "${var.vm_num_vcpus_per_socket}"
+  num_sockets          = "${var.vm_num_socket}"
+  memory_size_mib      = "${var.vm_memory}"
 
   cluster_reference = {
     kind = "cluster"
-    uuid = "${var.nutanix_cluster_uuid}"
+    uuid = "${var.cluster1}"
   }
 
-#  guest_customization_cloud_init_user_data = "${base64encode(element(data.template_file.nut_user_data.*.rendered, count.index))}"
-
-  nic_list = [
-    {
+  nic_list = [{
       subnet_reference = {
         kind = "subnet"
-        uuid = "${var.nutanix_network_uuid}"
-      } 
-    },
-  ]
+        uuid = "${var.vm_network_uuid}"
+      }
+  }]
 
   disk_list = [
     {
-      disk_size_mib = "${var.nut["os_disk"] * 1024 }"
       data_source_reference = {
         kind = "image"
-        uuid = "${var.nutanix_image_uuid}"
+        uuid = "${var.vm_cdrom_uuid}"
       }
     },
-    # {
-    #   disk_size_mib = "${var.nut["data_disk"] * 1024 }"
-    # },
+    {
+      data_source_reference = {
+        kind = "image"
+        uuid = "${var.vm_image_uuid}"
+      }
+    },
+	{
+      disk_size_mib = "102400"  
+	  device_properties = {
+		device_type = "DISK" 
+	  }
+    },
   ]
+}
 
-#  connection {
-#    type     = "ssh"
-#    user     = "${var.ssh_user}"
-#    password = "${var.ssh_password}"
-#    host     = "${self.nic_list.0.ip_endpoint_list.0.ip}"
-#  }
-
-#  provisioner "file" {
-#    content     = "${count.index == 0 ? tls_private_key.ssh.private_key_pem : "none"}"
-#    destination = "${count.index == 0 ? "~/id_rsa" : "/dev/null" }"
-#  }
-
-#  provisioner "remote-exec" {
-#    inline = [
-#      "echo ${var.ssh_password} | sudo -S echo",
-#      "echo \"${var.ssh_user} ALL=(ALL) NOPASSWD:ALL\" | sudo tee /etc/sudoers.d/${var.ssh_user}",
-#      # "sudo hostnamectl set-hostname ${self.name}",
-#      "sudo sed -i /^127.0.1.1.*$/d /etc/hosts",
-#      "echo $(ip addr | grep \"inet \" | grep -v 127.0.0.1 | awk -F\" \" 'NR==1 {print $2}' | cut -d / -f 1) ${self.name} | sudo tee -a /etc/hosts",
-#      "[ ! -d $HOME/.ssh ] && mkdir $HOME/.ssh && chmod 700 $HOME/.ssh",
-#      "echo \"${tls_private_key.ssh.public_key_openssh}\" | tee -a $HOME/.ssh/authorized_keys && chmod 600 $HOME/.ssh/authorized_keys",
-#      "[ -f ~/id_rsa ] && mv ~/id_rsa $HOME/.ssh/id_rsa && chmod 600 $HOME/.ssh/id_rsa",
-#    ]
-#  }
+output "simple-vm-ip" {
+  value = "${nutanix_virtual_machine.simple-vm.0.state}"
 }
