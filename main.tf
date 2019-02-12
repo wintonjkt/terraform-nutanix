@@ -49,7 +49,7 @@ resource "nutanix_virtual_machine" "nut" {
     uuid = "${var.nutanix_cluster_uuid}"
   }
 
-  guest_customization_cloud_init_user_data = "${base64encode(element(data.template_file.nut_user_data.*.rendered, count.index))}"
+#  guest_customization_cloud_init_user_data = "${base64encode(element(data.template_file.nut_user_data.*.rendered, count.index))}"
 
   nic_list = [
     {
@@ -73,28 +73,28 @@ resource "nutanix_virtual_machine" "nut" {
     # },
   ]
 
-  connection {
-    type     = "ssh"
-    user     = "${var.ssh_user}"
-    password = "${var.ssh_password}"
-    host     = "${self.nic_list.0.ip_endpoint_list.0.ip}"
-  }
+#  connection {
+#    type     = "ssh"
+#    user     = "${var.ssh_user}"
+#    password = "${var.ssh_password}"
+#    host     = "${self.nic_list.0.ip_endpoint_list.0.ip}"
+#  }
 
-  provisioner "file" {
-    content     = "${count.index == 0 ? tls_private_key.ssh.private_key_pem : "none"}"
-    destination = "${count.index == 0 ? "~/id_rsa" : "/dev/null" }"
-  }
+#  provisioner "file" {
+#    content     = "${count.index == 0 ? tls_private_key.ssh.private_key_pem : "none"}"
+#    destination = "${count.index == 0 ? "~/id_rsa" : "/dev/null" }"
+#  }
 
-  provisioner "remote-exec" {
-    inline = [
-      "echo ${var.ssh_password} | sudo -S echo",
-      "echo \"${var.ssh_user} ALL=(ALL) NOPASSWD:ALL\" | sudo tee /etc/sudoers.d/${var.ssh_user}",
-      # "sudo hostnamectl set-hostname ${self.name}",
-      "sudo sed -i /^127.0.1.1.*$/d /etc/hosts",
-      "echo $(ip addr | grep \"inet \" | grep -v 127.0.0.1 | awk -F\" \" 'NR==1 {print $2}' | cut -d / -f 1) ${self.name} | sudo tee -a /etc/hosts",
-      "[ ! -d $HOME/.ssh ] && mkdir $HOME/.ssh && chmod 700 $HOME/.ssh",
-      "echo \"${tls_private_key.ssh.public_key_openssh}\" | tee -a $HOME/.ssh/authorized_keys && chmod 600 $HOME/.ssh/authorized_keys",
-      "[ -f ~/id_rsa ] && mv ~/id_rsa $HOME/.ssh/id_rsa && chmod 600 $HOME/.ssh/id_rsa",
-    ]
-  }
+#  provisioner "remote-exec" {
+#    inline = [
+#      "echo ${var.ssh_password} | sudo -S echo",
+#      "echo \"${var.ssh_user} ALL=(ALL) NOPASSWD:ALL\" | sudo tee /etc/sudoers.d/${var.ssh_user}",
+#      # "sudo hostnamectl set-hostname ${self.name}",
+#      "sudo sed -i /^127.0.1.1.*$/d /etc/hosts",
+#      "echo $(ip addr | grep \"inet \" | grep -v 127.0.0.1 | awk -F\" \" 'NR==1 {print $2}' | cut -d / -f 1) ${self.name} | sudo tee -a /etc/hosts",
+#      "[ ! -d $HOME/.ssh ] && mkdir $HOME/.ssh && chmod 700 $HOME/.ssh",
+#      "echo \"${tls_private_key.ssh.public_key_openssh}\" | tee -a $HOME/.ssh/authorized_keys && chmod 600 $HOME/.ssh/authorized_keys",
+#      "[ -f ~/id_rsa ] && mv ~/id_rsa $HOME/.ssh/id_rsa && chmod 600 $HOME/.ssh/id_rsa",
+#    ]
+#  }
 }
